@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PULSE</string>
+    <string name="tagline">عاداتك. انضباطك. تقدمك.</string>
+    <string name="reminder_channel_name">تذكيرات العادات</string>
+    <string name="reminder_channel_description">تذكيرات يومية مجدولة للعادات والانضباط</string>
+    <string name="reminder_notification_title">حان وقت %1$s</string>
+    <string name="reminder_notification_body_build">حافظ على استمراريتك والتزامك اليومي.</string>
+    <string name="reminder_notification_body_quit">اثبت اليوم — كل ساعة تصنع فرقاً.</string>
+</resources>

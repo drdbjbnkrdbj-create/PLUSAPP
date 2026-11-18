@@ -1,0 +1,6 @@
+{
+  "name": "PULSE",
+  "description": "Your Habits. Your Discipline. Your Progress. Habit tracking, urge resistance, focus timer, and insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

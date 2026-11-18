@@ -1,0 +1,269 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net: deny everything by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestampsOnCreate(data) {
+      return data.createdAt is timestamp &&
+             data.createdAt <= request.time &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidTimestampsOnUpdate(data) {
+      return data.createdAt == existing().createdAt &&
+             data.updatedAt is timestamp &&
+             data.updatedAt <= request.time;
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 60 &&
+             data.themeMode in ['DARK', 'LIGHT'] &&
+             data.languageCode in ['en', 'ar'] &&
+             data.notificationsEnabled is bool;
+    }
+
+    function isValidHabit(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.localId is string && data.localId.size() >= 1 && data.localId.size() <= 64 &&
+             data.name is string && data.name.size() >= 1 && data.name.size() <= 100 &&
+             data.description is string && data.description.size() <= 400 &&
+             data.category in ['HEALTH', 'LEARNING', 'FITNESS', 'MINDFULNESS', 'PRODUCTIVITY', 'FINANCE', 'SOCIAL', 'OTHER'] &&
+             data.habitType in ['BUILD', 'QUIT'] &&
+             data.trackingMode in ['BOOLEAN', 'NUMERICAL'] &&
+             data.targetValue is int && data.targetValue >= 1 && data.targetValue <= 10000 &&
+             data.unit is string && data.unit.size() <= 30 &&
+             data.iconKey is string && data.iconKey.size() >= 1 && data.iconKey.size() <= 40 &&
+             data.colorHex is string && data.colorHex.size() >= 1 && data.colorHex.size() <= 16 &&
+             data.scheduleType in ['DAILY', 'CUSTOM_DAYS'] &&
+             data.scheduleDays is list && data.scheduleDays.size() <= 7 &&
+             (data.scheduleDays.size() == 0 || data.scheduleDays[0] is int) &&
+             data.reminderEnabled is bool &&
+             data.reminderTime is string && data.reminderTime.size() <= 10 &&
+             data.archived is bool &&
+             data.createdEpochDay is int && data.createdEpochDay >= 0 && data.createdEpochDay <= 100000;
+    }
+
+    function isValidHabitRecord(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.habitLocalId is string && data.habitLocalId.size() >= 1 && data.habitLocalId.size() <= 64 &&
+             data.epochDay is int && data.epochDay >= 0 && data.epochDay <= 100000 &&
+             data.status in ['COMPLETED', 'MISSED', 'SKIPPED', 'CLEAN_DAY', 'RELAPSE'] &&
+             data.progressValue is int && data.progressValue >= 0 && data.progressValue <= 100000 &&
+             data.notes is string && data.notes.size() <= 500 &&
+             data.recordedTimestampMs is int && data.recordedTimestampMs >= 0;
+    }
+
+    function isValidUrgeRecord(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             (!('habitLocalId' in data) || (data.habitLocalId is string && data.habitLocalId.size() >= 1 && data.habitLocalId.size() <= 64)) &&
+             data.epochDay is int && data.epochDay >= 0 && data.epochDay <= 100000 &&
+             data.timeString is string && data.timeString.size() >= 1 && data.timeString.size() <= 20 &&
+             data.recordKind in ['URGE_RESISTED', 'RELAPSE'] &&
+             data.intensity is int && data.intensity >= 1 && data.intensity <= 10 &&
+             data.notes is string && data.notes.size() <= 500 &&
+             data.recordedTimestampMs is int && data.recordedTimestampMs >= 0;
+    }
+
+    function isValidGoal(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+             data.description is string && data.description.size() <= 400 &&
+             data.targetEpochDay is int && data.targetEpochDay >= 0 && data.targetEpochDay <= 100000 &&
+             data.currentProgress is int && data.currentProgress >= 0 && data.currentProgress <= 100000 &&
+             data.targetTotal is int && data.targetTotal >= 1 && data.targetTotal <= 100000 &&
+             data.status in ['ACTIVE', 'COMPLETED', 'PAUSED'];
+    }
+
+    function isValidFocusSession(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.durationMinutes is int && data.durationMinutes >= 1 && data.durationMinutes <= 480 &&
+             data.epochDay is int && data.epochDay >= 0 && data.epochDay <= 100000 &&
+             data.completed is bool &&
+             data.sessionType in ['FOCUS', 'URGE_SURF'] &&
+             data.startedAtMs is int && data.startedAtMs >= 0;
+    }
+
+    function isValidIfThenPlan(data, userId) {
+      return data.userId is string && data.userId == userId &&
+             data.triggerText is string && data.triggerText.size() >= 1 && data.triggerText.size() <= 200 &&
+             data.responseText is string && data.responseText.size() >= 1 && data.responseText.size() <= 300;
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().keys().hasAll(['userId', 'displayName', 'themeMode', 'languageCode', 'notificationsEnabled', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['userId', 'displayName', 'themeMode', 'languageCode', 'notificationsEnabled', 'createdAt', 'updatedAt']) &&
+                       isValidTimestampsOnCreate(incoming()) &&
+                       isValidUserProfile(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       incoming().userId == existing().userId &&
+                       isValidTimestampsOnUpdate(incoming()) &&
+                       isValidUserProfile(incoming(), userId) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'themeMode', 'languageCode', 'notificationsEnabled', 'updatedAt']);
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      match /habits/{habitId} {
+        allow get: if isOwner(userId) && isValidId(habitId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(habitId) &&
+                         incoming().keys().hasAll(['userId', 'localId', 'name', 'description', 'category', 'habitType', 'trackingMode', 'targetValue', 'unit', 'iconKey', 'colorHex', 'scheduleType', 'scheduleDays', 'reminderEnabled', 'reminderTime', 'archived', 'createdEpochDay', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'localId', 'name', 'description', 'category', 'habitType', 'trackingMode', 'targetValue', 'unit', 'iconKey', 'colorHex', 'scheduleType', 'scheduleDays', 'reminderEnabled', 'reminderTime', 'archived', 'createdEpochDay', 'createdAt', 'updatedAt']) &&
+                         isValidTimestampsOnCreate(incoming()) &&
+                         isValidHabit(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(habitId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().localId == existing().localId &&
+                         incoming().createdEpochDay == existing().createdEpochDay &&
+                         isValidTimestampsOnUpdate(incoming()) &&
+                         isValidHabit(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'category', 'habitType', 'trackingMode', 'targetValue', 'unit', 'iconKey', 'colorHex', 'scheduleType', 'scheduleDays', 'reminderEnabled', 'reminderTime', 'archived', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(habitId);
+      }
+
+      match /habit_records/{recordId} {
+        allow get: if isOwner(userId) && isValidId(recordId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(recordId) &&
+                         incoming().keys().hasAll(['userId', 'habitLocalId', 'epochDay', 'status', 'progressValue', 'notes', 'recordedTimestampMs', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'habitLocalId', 'epochDay', 'status', 'progressValue', 'notes', 'recordedTimestampMs', 'createdAt', 'updatedAt']) &&
+                         isValidTimestampsOnCreate(incoming()) &&
+                         isValidHabitRecord(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(recordId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().habitLocalId == existing().habitLocalId &&
+                         incoming().epochDay == existing().epochDay &&
+                         isValidTimestampsOnUpdate(incoming()) &&
+                         isValidHabitRecord(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'progressValue', 'notes', 'recordedTimestampMs', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(recordId);
+      }
+
+      match /urge_records/{urgeId} {
+        allow get: if isOwner(userId) && isValidId(urgeId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(urgeId) &&
+                         incoming().keys().hasAll(['userId', 'epochDay', 'timeString', 'recordKind', 'intensity', 'notes', 'recordedTimestampMs', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'habitLocalId', 'epochDay', 'timeString', 'recordKind', 'intensity', 'notes', 'recordedTimestampMs', 'createdAt', 'updatedAt']) &&
+                         isValidTimestampsOnCreate(incoming()) &&
+                         isValidUrgeRecord(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(urgeId) &&
+                         incoming().userId == existing().userId &&
+                         isValidTimestampsOnUpdate(incoming()) &&
+                         isValidUrgeRecord(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['habitLocalId', 'epochDay', 'timeString', 'recordKind', 'intensity', 'notes', 'recordedTimestampMs', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(urgeId);
+      }
+
+      match /goals/{goalId} {
+        allow get: if isOwner(userId) && isValidId(goalId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(goalId) &&
+                         incoming().keys().hasAll(['userId', 'title', 'description', 'targetEpochDay', 'currentProgress', 'targetTotal', 'status', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'title', 'description', 'targetEpochDay', 'currentProgress', 'targetTotal', 'status', 'createdAt', 'updatedAt']) &&
+                         isValidTimestampsOnCreate(incoming()) &&
+                         isValidGoal(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(goalId) &&
+                         incoming().userId == existing().userId &&
+                         isValidTimestampsOnUpdate(incoming()) &&
+                         isValidGoal(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'targetEpochDay', 'currentProgress', 'targetTotal', 'status', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(goalId);
+      }
+
+      match /focus_sessions/{sessionId} {
+        allow get: if isOwner(userId) && isValidId(sessionId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(sessionId) &&
+                         incoming().keys().hasAll(['userId', 'durationMinutes', 'epochDay', 'completed', 'sessionType', 'startedAtMs', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'durationMinutes', 'epochDay', 'completed', 'sessionType', 'startedAtMs', 'createdAt', 'updatedAt']) &&
+                         isValidTimestampsOnCreate(incoming()) &&
+                         isValidFocusSession(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(sessionId) &&
+                         incoming().userId == existing().userId &&
+                         isValidTimestampsOnUpdate(incoming()) &&
+                         isValidFocusSession(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['completed', 'durationMinutes', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(sessionId);
+      }
+
+      match /if_then_plans/{planId} {
+        allow get: if isOwner(userId) && isValidId(planId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) &&
+                         isValidId(planId) &&
+                         incoming().keys().hasAll(['userId', 'triggerText', 'responseText', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['userId', 'triggerText', 'responseText', 'createdAt', 'updatedAt']) &&
+                         isValidTimestampsOnCreate(incoming()) &&
+                         isValidIfThenPlan(incoming(), userId);
+
+        allow update: if isOwner(userId) &&
+                         isValidId(planId) &&
+                         incoming().userId == existing().userId &&
+                         isValidTimestampsOnUpdate(incoming()) &&
+                         isValidIfThenPlan(incoming(), userId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['triggerText', 'responseText', 'updatedAt']);
+
+        allow delete: if isOwner(userId) && isValidId(planId);
+      }
+    }
+  }
+}

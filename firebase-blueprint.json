@@ -1,0 +1,157 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User display preferences synced with PULSE cloud backup.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Firebase Auth UID" },
+        "displayName": { "type": "string", "description": "Display name (1-60 chars)" },
+        "themeMode": { "type": "string", "enum": ["DARK", "LIGHT"] },
+        "languageCode": { "type": "string", "enum": ["en", "ar"] },
+        "notificationsEnabled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Server timestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Server timestamp" }
+      },
+      "required": ["userId", "displayName", "themeMode", "languageCode", "notificationsEnabled", "createdAt", "updatedAt"]
+    },
+    "Habit": {
+      "title": "Habit",
+      "description": "User habit definition synced from Room.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "localId": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["HEALTH", "LEARNING", "FITNESS", "MINDFULNESS", "PRODUCTIVITY", "FINANCE", "SOCIAL", "OTHER"] },
+        "habitType": { "type": "string", "enum": ["BUILD", "QUIT"] },
+        "trackingMode": { "type": "string", "enum": ["BOOLEAN", "NUMERICAL"] },
+        "targetValue": { "type": "integer" },
+        "unit": { "type": "string" },
+        "iconKey": { "type": "string" },
+        "colorHex": { "type": "string" },
+        "scheduleType": { "type": "string", "enum": ["DAILY", "CUSTOM_DAYS"] },
+        "scheduleDays": { "type": "array" },
+        "reminderEnabled": { "type": "boolean" },
+        "reminderTime": { "type": "string" },
+        "archived": { "type": "boolean" },
+        "createdEpochDay": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "localId", "name", "description", "category", "habitType", "trackingMode", "targetValue", "unit", "iconKey", "colorHex", "scheduleType", "scheduleDays", "reminderEnabled", "reminderTime", "archived", "createdEpochDay", "createdAt", "updatedAt"]
+    },
+    "HabitRecord": {
+      "title": "HabitRecord",
+      "description": "Daily completion or relapse record for a habit.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "habitLocalId": { "type": "string" },
+        "epochDay": { "type": "integer" },
+        "status": { "type": "string", "enum": ["COMPLETED", "MISSED", "SKIPPED", "CLEAN_DAY", "RELAPSE"] },
+        "progressValue": { "type": "integer" },
+        "notes": { "type": "string" },
+        "recordedTimestampMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "habitLocalId", "epochDay", "status", "progressValue", "notes", "recordedTimestampMs", "createdAt", "updatedAt"]
+    },
+    "UrgeRecord": {
+      "title": "UrgeRecord",
+      "description": "Urge resistance or relapse log entry.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "habitLocalId": { "type": "string" },
+        "epochDay": { "type": "integer" },
+        "timeString": { "type": "string" },
+        "recordKind": { "type": "string", "enum": ["URGE_RESISTED", "RELAPSE"] },
+        "intensity": { "type": "integer" },
+        "notes": { "type": "string" },
+        "recordedTimestampMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "epochDay", "timeString", "recordKind", "intensity", "notes", "recordedTimestampMs", "createdAt", "updatedAt"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "Long-term personal goal.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "targetEpochDay": { "type": "integer" },
+        "currentProgress": { "type": "integer" },
+        "targetTotal": { "type": "integer" },
+        "status": { "type": "string", "enum": ["ACTIVE", "COMPLETED", "PAUSED"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "description", "targetEpochDay", "currentProgress", "targetTotal", "status", "createdAt", "updatedAt"]
+    },
+    "FocusSession": {
+      "title": "FocusSession",
+      "description": "Focus or urge-surfing timer session.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "durationMinutes": { "type": "integer" },
+        "epochDay": { "type": "integer" },
+        "completed": { "type": "boolean" },
+        "sessionType": { "type": "string", "enum": ["FOCUS", "URGE_SURF"] },
+        "startedAtMs": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "durationMinutes", "epochDay", "completed", "sessionType", "startedAtMs", "createdAt", "updatedAt"]
+    },
+    "IfThenPlan": {
+      "title": "IfThenPlan",
+      "description": "Personal implementation intention for urge management.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "triggerText": { "type": "string" },
+        "responseText": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "triggerText", "responseText", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User preferences profile."
+    },
+    "/users/{userId}/habits/{habitId}": {
+      "schema": { "$ref": "#/entities/Habit" },
+      "description": "Synced habits belonging to userId."
+    },
+    "/users/{userId}/habit_records/{recordId}": {
+      "schema": { "$ref": "#/entities/HabitRecord" },
+      "description": "Synced daily habit records belonging to userId."
+    },
+    "/users/{userId}/urge_records/{urgeId}": {
+      "schema": { "$ref": "#/entities/UrgeRecord" },
+      "description": "Synced urge and relapse records belonging to userId."
+    },
+    "/users/{userId}/goals/{goalId}": {
+      "schema": { "$ref": "#/entities/Goal" },
+      "description": "Synced long-term goals belonging to userId."
+    },
+    "/users/{userId}/focus_sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/FocusSession" },
+      "description": "Synced focus timer sessions belonging to userId."
+    },
+    "/users/{userId}/if_then_plans/{planId}": {
+      "schema": { "$ref": "#/entities/IfThenPlan" },
+      "description": "Synced if-then urge plans belonging to userId."
+    }
+  }
+}

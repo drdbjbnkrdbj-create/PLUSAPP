@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PULSE</string>
+    <string name="tagline">Your Habits. Your Discipline. Your Progress.</string>
+    <string name="reminder_channel_name">Habit Reminders</string>
+    <string name="reminder_channel_description">Scheduled daily habit and discipline reminders</string>
+    <string name="reminder_notification_title">Time for %1$s</string>
+    <string name="reminder_notification_body_build">Stay consistent with your daily commitment.</string>
+    <string name="reminder_notification_body_quit">Stay strong today — every hour counts.</string>
+</resources>
